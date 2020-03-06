@@ -24,6 +24,10 @@ def cfg_file():
     return os.path.join(dirname, "config", "test_cfg.py")
 def alt_cfg_file():
     return os.path.join(dirname, "config", "test_cfg_alt.py")
+def cfg_reload_module():
+    return 'config.test_reload'
+def cfg_reload_file():
+    return os.path.join(dirname, "config", "test_reload.py")
 def paster_ini():
     return os.path.join(dirname, "..", "examples", "frameworks", "pylonstest", "nose.ini")
 
@@ -237,6 +241,49 @@ def test_load_config_module():
     assert app.cfg.workers == 3
     assert app.cfg.proc_name == "fooey"
 
+@pytest.fixture
+def create_reload_config_file(request):
+    with open(cfg_reload_file(), 'w') as f:
+        f.write("workers=4")
+
+    def fin():
+        os.unlink(cfg_reload_file())
+    request.addfinalizer(fin)
+
+    return None
+
+def test_reload_config(create_reload_config_file):
+    with AltArgs(["prog_name", "-c", cfg_reload_file()]):
+        app = NoConfigApp()
+
+        with open(cfg_reload_file(), 'w') as f:
+            f.write("workers=3")
+
+        app.reload()
+
+    assert app.cfg.workers == 3
+
+def test_reload_config_explicit_file(create_reload_config_file):
+    with AltArgs(["prog_name", "-c", "file:%s" % cfg_reload_file()]):
+        app = NoConfigApp()
+
+        with open(cfg_reload_file(), 'w') as f:
+            f.write("workers=3")
+
+        app.reload()
+
+    assert app.cfg.workers == 3
+
+def test_reload_config_module(create_reload_config_file):
+    with AltArgs(["prog_name", "-c", "python:%s" % cfg_reload_module()]):
+        app = NoConfigApp()
+
+        with open(cfg_reload_file(), 'w') as f:
+            f.write("workers=3")
+
+        app.reload()
+
+    assert app.cfg.workers == 3
 
 def test_cli_overrides_config():
     with AltArgs(["prog_name", "-c", cfg_file(), "-b", "blarney"]):
