@@ -3,6 +3,7 @@
 # This file is part of gunicorn released under the MIT license.
 # See the NOTICE for more information.
 
+import datetime
 import os
 import sys
 
@@ -245,6 +246,9 @@ def test_load_config_module():
 def create_reload_config_file(request):
     with open(cfg_reload_file(), 'w') as f:
         f.write("workers=4")
+
+    dt = datetime.datetime.now() - datetime.timedelta(seconds=1)
+    os.utime(cfg_reload_file(), (dt.timestamp(), dt.timestamp()))
 
     def fin():
         os.unlink(cfg_reload_file())
